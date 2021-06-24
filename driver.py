@@ -29,14 +29,14 @@ class glWidget(QGLWidget):
         QGLWidget.__init__(self, parent)
         self.setMinimumSize(window_width, window_height)
 
+        # translation variables
+        self.x =-10.0
+        self.y = -10.0
+        self.z = -10.0
         # rotation variables
         self.rotX = 0.0
-        self.rotY = 0.0
+        self.rotY = -45.0
         self.rotZ = 0.0
-        # translation variables
-        self.x = 0.0
-        self.y = 0.0
-        self.z = -80.0
         # scaling variables
         self.zoom = 0
 
@@ -51,7 +51,7 @@ class glWidget(QGLWidget):
         glShadeModel(GL_SMOOTH)
         glMatrixMode(GL_PROJECTION)
         glLoadIdentity()
-        gluPerspective(45.0, window_width / window_height, 0.1, 100.0)
+        gluPerspective(45.0, window_width / window_height, 0.1, 1000.0)
         glMatrixMode(GL_MODELVIEW)
 
     def initGeometry(self):
@@ -82,25 +82,128 @@ class glWidget(QGLWidget):
         # functions for tire, body and then whole car
 
         # Rendering Begins Here
-        self.renderCylinder( [1,0,0], [0,0,0] , 5)
-        self.renderCylinder( [0,1,0], [0,0,-5] , 10)
-        self.renderCylinder( [0,0,1], [0,0,-10], 15)
 
-    def renderCylinder(self, color, centerTuple, r):
-        glColor3f(color[0], color[1], color[2])
-        glPolygonMode(GL_FRONT, GL_FILL)
-        glBegin(GL_TRIANGLES)
+        overall_length = 80
+        overall_width = 30
+        overall_height = 20
+        c = 5 # window height
+        d = 10 # door height
+        f = 10 # front tire clearance
+        g = 10 # back tire clearance
+        tire_radius = overall_height - c  - d
+        top_left_of_car = (0,0,0)
+        self.renderBody(overall_width, overall_length, overall_height, top_left_of_car, tire_radius )
+
+        #render 4 tires
+        tire_width = 2
+        self.renderCylinder( [1,0,0], [0            ,tire_radius, -f ], tire_radius, tire_width)
+        self.renderCylinder( [0,1,0], [overall_width,tire_radius, -f ], tire_radius, tire_width)
+        self.renderCylinder( [0,0,1], [overall_width,tire_radius, -(overall_length - g)], tire_radius, tire_width)
+        self.renderCylinder( [0,1,1], [0            ,tire_radius, -(overall_length - g)], tire_radius, tire_width)
+
+    # ------------------------ Modeling Functions ------------------------------------
+
+    def renderBody(self, overall_width, overall_length, overall_height, anchor, r):
+        a = (anchor[0], anchor[1], anchor[2])
+        ow = overall_width
+        ol = overall_length
+        oh = overall_height
+        tire_radius = r
+
+        #make cube
+        glBegin(GL_QUADS)
+
+        #bottom face
+        glColor3f(1, 0, 0)
+        glVertex3f(a[0]     , a[1]+tire_radius, a[2]        )
+        glVertex3f(a[0] + ow, a[1]+tire_radius, a[2]        )
+        glVertex3f(a[0] + ow, a[1]+tire_radius, a[2] - ol   )
+        glVertex3f(a[0]     , a[1]+tire_radius, a[2] - ol   )
+
+        #top face
+        glColor3f(1, 0, 0)
+        glVertex3f(a[0]     , a[1]+oh, a[2]        )
+        glVertex3f(a[0] + ow, a[1]+oh, a[2]        )
+        glVertex3f(a[0] + ow, a[1]+oh, a[2] - ol   )
+        glVertex3f(a[0]     , a[1]+oh, a[2] - ol   )
+
+        #right face
+        glColor3f(0, 1, 0)
+        glVertex3f(a[0]     , a[1]+tire_radius  , a[2]        )
+        glVertex3f(a[0]     , a[1]+oh           , a[2]        )
+        glVertex3f(a[0]     , a[1]+oh           , a[2] - ol   )
+        glVertex3f(a[0]     , a[1]+tire_radius  , a[2] - ol   )
+
+        #left face
+        glColor3f(0, 1, 0)
+        glVertex3f(a[0]+ow  , a[1]+tire_radius  , a[2]        )
+        glVertex3f(a[0]+ow  , a[1]+oh           , a[2]        )
+        glVertex3f(a[0]+ow  , a[1]+oh           , a[2] - ol   )
+        glVertex3f(a[0]+ow  , a[1]+tire_radius  , a[2] - ol   )
+
+        #front face
+        glColor3f(0, 0, 1)
+        glVertex3f(a[0]     , a[1]+tire_radius  , a[2])
+        glVertex3f(a[0]+ow  , a[1]+tire_radius  , a[2])
+        glVertex3f(a[0]+ow  , a[1]+oh           , a[2])
+        glVertex3f(a[0]     , a[1]+oh           , a[2])
+
+        #back face
+        glColor3f(0, 0, 1)
+        glVertex3f(a[0]     , a[1]+tire_radius  , a[2] - ol)
+        glVertex3f(a[0]+ow  , a[1]+tire_radius  , a[2] - ol)
+        glVertex3f(a[0]+ow  , a[1]+oh           , a[2] - ol)
+        glVertex3f(a[0]     , a[1]+oh           , a[2] - ol)
+
+        glEnd()
+        glFlush()
+
+
+
+    def renderCylinder(self, color, centerTuple, r, t):
         center = (centerTuple[0], centerTuple[1], centerTuple[2])
         radius = r
         step = 5
+
+        # FACE 1 OF CYLINDER
+        glColor3f(color[0], color[1], color[2])
+        glPolygonMode(GL_FRONT, GL_FILL)
+        glBegin(GL_TRIANGLES)
         for theta in range(0, 360, step):
             glVertex3f(center[0], center[1], center[2])
             arc_start = theta * (np.pi / 180)
             arc_end = (theta + step) * (np.pi / 180)
-            glVertex3f(radius * np.cos(arc_start), radius * np.sin(arc_start), center[2])
-            glVertex3f(radius * np.cos(arc_end), radius * np.sin(arc_end), center[2])
+            glVertex3f(center[0]-(t/2),center[1]+ radius * np.cos(arc_start),center[2]+ radius * np.sin(arc_start) )
+            glVertex3f(center[0]-(t/2),center[1] + radius * np.cos(arc_end), center[2]+ radius * np.sin(arc_end) )
         glEnd()
         glFlush()
+
+        # SIDE OF CYLINDER
+        glColor3f(color[1], color[2], color[0])
+        glBegin(GL_QUAD_STRIP)
+        for theta in range(0, 360, step):
+            arc_start = theta * (np.pi / 180)
+            arc_end = (theta + step) * (np.pi / 180)
+            glVertex3f(center[0]-(t/2), center[1]+radius * np.cos(arc_start), center[2]+radius * np.sin(arc_start))
+            glVertex3f(center[0]-(t/2), center[1]+radius * np.cos(arc_end), center[2]+ radius * np.sin(arc_end))
+            glVertex3f(center[0]+(t/2), center[1]+radius * np.cos(arc_start), center[2]+radius * np.sin(arc_start))
+            glVertex3f(center[0]+(t/2), center[1]+radius * np.cos(arc_end), center[2]+radius * np.sin(arc_end))
+        glEnd()
+        glFlush()
+
+        # FACE 2 OF CYLINDER
+        glColor3f(color[0], color[1], color[2])
+        glPolygonMode(GL_FRONT, GL_FILL)
+        glBegin(GL_TRIANGLES)
+        for theta in range(0, 360, step):
+            glVertex3f(center[0], center[1], center[2])
+            arc_start = theta * (np.pi / 180)
+            arc_end = (theta + step) * (np.pi / 180)
+            glVertex3f(center[0]+(t/2),center[1]+ radius * np.cos(arc_start),center[2]+ radius * np.sin(arc_start) )
+            glVertex3f(center[0]+(t/2),center[1] + radius * np.cos(arc_end), center[2]+ radius * np.sin(arc_end) )
+        glEnd()
+        glFlush()
+
 
     def renderCoordinateArrows(self):
         glBegin(GL_LINES)
