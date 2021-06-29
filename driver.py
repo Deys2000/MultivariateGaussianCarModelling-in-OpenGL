@@ -24,18 +24,18 @@ class glWidget(QGLWidget):
 
     def __init__(self, parent=None):
         window_height = 600
-        window_width = 800
+        window_width = 1000
 
         QGLWidget.__init__(self, parent)
         self.setMinimumSize(window_width, window_height)
 
         # translation variables
-        self.x =-10.0
-        self.y = -10.0
-        self.z = -10.0
+        self.x = 20.0
+        self.y = -30.0
+        self.z = -100.0
         # rotation variables
         self.rotX = 0.0
-        self.rotY = -45.0
+        self.rotY = 45.0
         self.rotZ = 0.0
         # scaling variables
         self.zoom = 0
@@ -65,12 +65,14 @@ class glWidget(QGLWidget):
     def paintGL(self):
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
         glLoadIdentity()
-        # i am unable to use the lookat function properly :(
+
+        # i am unable to use the lookat function properly here :(
         # gluLookAt(
         #     0,0,self.zoom, # camera position
         #     0,0,0, # camera direction
         #     0,1,0
         # )
+
         # rotations and translations must be done before rendering
         glTranslatef(self.x, self.y, self.z)
         glRotate(self.rotX, 1, 0, 0)
@@ -81,27 +83,105 @@ class glWidget(QGLWidget):
 
         # functions for tire, body and then whole car
 
+        brown_dark = (130/256, 60/256, 0/256)
+        brown_light = (150/256, 75/256, 0/256)
+        black = (0,0,0)
+        gray_dark = (40/256, 40/256, 40/256)
+        gray_light = (200/256, 200/256, 200/256)
+
+
+        red = (1,0,0)
+        blue = (0,1,0)
+        green = (0,0,1)
+        yellow = (1,1,0)
+        purple = (1,0,1)
+        blue_green = (0,1,1)
+
         # Rendering Begins Here
 
-        overall_length = 80
-        overall_width = 30
-        overall_height = 20
-        c = 5 # window height
-        d = 10 # door height
+        # ALL PASSED DIMENSIONS
+        ow = 30 # overall width
+        ol = 60 # overall length
+        oh = 40 # overall height
+        a = 15 # length of front hood
+        c = 10 # window height
+        d = 20 # door height
         f = 10 # front tire clearance
         g = 10 # back tire clearance
-        tire_radius = overall_height - c  - d
-        top_left_of_car = (0,0,0)
-        self.renderBody(overall_width, overall_length, overall_height, top_left_of_car, tire_radius )
+        e = 20
+        tire_radius = oh - c  - d
+
+        anchor = (0,0,0)  # reference point in 3D space to fix car location
+
+        # ALL CALCULATED VERTICES
+
+        v1  = ( anchor[0] + (ow-e)/2      , anchor[1] + (oh-c-d)        , anchor[2] )
+        v2  = ( anchor[0] + (ow-e)/2      , anchor[1] + (oh-c-d*(1/5))  , anchor[2] )
+        v3  = ( anchor[0] + ow - (ow-e)/2 , anchor[1] + (oh-c-d*(1/5))  , anchor[2] )
+        v4  = ( anchor[0] + ow - (ow-e)/2 , anchor[1] + (oh-c-d)        , anchor[2] )
+        v5  = ( anchor[0]                 , anchor[1] + (oh-c-d)        , anchor[2] - a*(1/5))
+        v6  = ( anchor[0]                 , anchor[1] + (oh-c)          , anchor[2] - a*(1/5))
+        v7  = ( anchor[0] + ow            , anchor[1] + (oh-c)          , anchor[2] - a*(1/5))
+        v8  = ( anchor[0] + ow            , anchor[1] + (oh-c-d)        , anchor[2] - a*(1/5))
+        v9  = ( anchor[0]                 , anchor[1] + (oh-c)          , anchor[2] - a)
+        v10 = ( anchor[0] + ow            , anchor[1] + (oh-c)          , anchor[2] - a)
+        v11 = ( anchor[0] + (ow-e)/2      , anchor[1] + oh              , anchor[2] - a - (ol-a)*(2/8) )
+        v12 = ( anchor[0] + ow - (ow-e)/2 , anchor[1] + oh              , anchor[2] - a - (ol-a)*(2/8) )
+        v13 = ( anchor[0] + (ow-e)/2      , anchor[1] + oh              , anchor[2] - (ol - (ol-a)*(1/8)) )
+        v14 = ( anchor[0] + ow - (ow-e)/2 , anchor[1] + oh              , anchor[2] - (ol - (ol-a)*(1/8)) )
+        v15 = ( anchor[0]                 , anchor[1] + (oh-c)          , anchor[2] - ol )
+        v16 = ( anchor[0] + ow            , anchor[1] + (oh-c)          , anchor[2] - ol )
+        v17 = ( anchor[0]                 , anchor[1] + (oh-c-d)        , anchor[2] - ol )
+        v18 = ( anchor[0] + ow            , anchor[1] + (oh-c-d)        , anchor[2] - ol )
+        v19 = ( anchor[0] + ow            , anchor[1] + (oh-c-d)        , anchor[2] - f )
+        v20 = ( anchor[0]                 , anchor[1] + (oh-c-d)        , anchor[2] - f )
+        v21 = ( anchor[0] + ow            , anchor[1] + (oh-c-d)        , anchor[2] - (ol-g) )
+        v22 = ( anchor[0]                 , anchor[1] + (oh-c-d)        , anchor[2] + (ol-g) )
+
+
+
+
+
+        #self.renderBody(overall_width, overall_length, overall_height, anchor, tire_radius )
+        self.renderQuad(v1,v2,v3,v4,        brown_light ) # face 11
+        self.renderQuad(v1,v2,v6,v5,        brown_dark) # face 13
+        self.renderQuad(v2,v3,v7,v6,        brown_dark) # face 10
+        self.renderQuad(v3,v4,v8,v7,        brown_dark) # face 12
+        self.renderQuad(v6, v7, v10, v9,    brown_light)  # face 9
+        self.renderQuad(v9, v10, v12, v11,  gray_light)  # face 8
+        self.renderQuad(v11, v12, v14, v13, brown_light)  # face 1
+        self.renderQuad(v13, v14, v16, v15, gray_light)  # face 2
+        self.renderQuad(v16, v15, v17, v18, brown_dark)  # face 3
+        self.renderQuad(v10, v12, v14, v16, gray_light)  # face 4
+        self.renderQuad(v8, v7, v16, v18,   brown_light)  # face 5
+        self.renderQuad(v5, v6, v15, v17,   brown_light)  # face 7
+        self.renderQuad(v9, v11, v13, v15,  gray_light)  # face 6
+        self.renderQuad(v5, v8, v18, v17,   gray_dark)  # face 14
+        #self.renderQuad(v3, v4, v8, v7)  # face 15
+
+
+
+
 
         #render 4 tires
         tire_width = 2
-        self.renderCylinder( [1,0,0], [0            ,tire_radius, -f ], tire_radius, tire_width)
-        self.renderCylinder( [0,1,0], [overall_width,tire_radius, -f ], tire_radius, tire_width)
-        self.renderCylinder( [0,0,1], [overall_width,tire_radius, -(overall_length - g)], tire_radius, tire_width)
-        self.renderCylinder( [0,1,1], [0            ,tire_radius, -(overall_length - g)], tire_radius, tire_width)
+        self.renderCylinder( gray_dark, [0            ,tire_radius, -f                    ], tire_radius, tire_width)
+        self.renderCylinder( gray_dark, [ow,tire_radius, -f                    ], tire_radius, tire_width)
+        self.renderCylinder( gray_dark, [ow,tire_radius, -(ol - g)], tire_radius, tire_width)
+        self.renderCylinder( gray_dark, [0            ,tire_radius, -(ol - g)], tire_radius, tire_width)
 
     # ------------------------ Modeling Functions ------------------------------------
+
+    def renderQuad(self, v1, v2, v3, v4, color):
+        glPolygonMode(GL_FRONT_AND_BACK, GL_LINE)
+        glBegin(GL_QUADS)
+        glColor3f(color[0],color[1],color[2])
+        glVertex3f(v1[0],v1[1],v1[2])
+        glVertex3f(v2[0],v2[1],v2[2])
+        glVertex3f(v3[0],v3[1],v3[2])
+        glVertex3f(v4[0],v4[1],v4[2])
+        glEnd()
+        glFlush()
 
     def renderBody(self, overall_width, overall_length, overall_height, anchor, r):
         a = (anchor[0], anchor[1], anchor[2])
@@ -179,7 +259,7 @@ class glWidget(QGLWidget):
         glFlush()
 
         # SIDE OF CYLINDER
-        glColor3f(color[1], color[2], color[0])
+        glColor3f(0,0,0) # BLACK
         glBegin(GL_QUAD_STRIP)
         for theta in range(0, 360, step):
             arc_start = theta * (np.pi / 180)
