@@ -5,11 +5,15 @@ from PyQt5 import QtGui
 from PyQt5.QtOpenGL import *
 from PyQt5 import QtCore, QtWidgets, QtOpenGL
 import numpy as np
-
+import matlab.engine
+from scipy.io import loadmat
 
 # creates the main window and calls the glWidget Class for contents
 class Ui_MainWindow(QtWidgets.QWidget):
     def __init__(self, parent=None):
+
+
+        #GUI and opengl
         super(Ui_MainWindow, self).__init__()
         self.widget = glWidget()  # calling glWidget for object creation
         self.widget.setFocusPolicy(QtCore.Qt.FocusPolicy.StrongFocus)
@@ -29,11 +33,19 @@ class glWidget(QGLWidget):
         QGLWidget.__init__(self, parent)
         self.setMinimumSize(window_width, window_height)
 
-        # translation variables
-        self.x = 20.0
-        self.y = -30.0
-        self.z = -100.0
-        # rotation variables
+        # #maltab calc
+        self.eng = matlab.engine.start_matlab()
+        self.eng.MultivariateNormalOf2021Cars(nargout=0)
+        self.eng.quit()
+
+        parameter_data = loadmat('ModellingData.mat')
+        self.carDimensions =  parameter_data.get('X')
+
+        # translation variables - inital values
+        self.x = 20.0*10
+        self.y = -30.0*10
+        self.z = -100.0*10
+        # rotation variables - initial values
         self.rotX = 0.0
         self.rotY = 45.0
         self.rotZ = 0.0
@@ -51,13 +63,14 @@ class glWidget(QGLWidget):
         glShadeModel(GL_SMOOTH)
         glMatrixMode(GL_PROJECTION)
         glLoadIdentity()
-        gluPerspective(45.0, window_width / window_height, 0.1, 1000.0)
+        gluPerspective(45.0, window_width / window_height, 0.1, 10000.0)
         glMatrixMode(GL_MODELVIEW)
 
-    def initGeometry(self):
-        glEnable(GL_LIGHT0)
-        glClearColor(1, 0, 0, 1)  # sets a black background
-        glEnable(GL_DEPTH_TEST)
+    # def initGeometry(self):
+    #     glEnable(GL_LIGHTING)
+    #     glEnable(GL_LIGHT0)
+    #     glClearColor(0, 0, 0, 1)  # sets a black background
+    #     glEnable(GL_DEPTH_TEST)
 
     # ------------- Car Modeling Happens Here -----------
 
@@ -80,16 +93,19 @@ class glWidget(QGLWidget):
         glRotate(self.rotZ, 0, 0, 1)
 
         self.renderCoordinateArrows()
+        anchorStepsX = 0
+        for dimensions in self.carDimensions:
+            self.renderCar((anchorStepsX,0,0), dimensions )
+            anchorStepsX += 300
 
-        # functions for tire, body and then whole car
-
+    def renderCar(self, anchor, parameterData):
+        # COLORS
         brown_dark = (130/256, 60/256, 0/256)
+        brown_regular = (140/256, 67/256, 0/256)
         brown_light = (150/256, 75/256, 0/256)
         black = (0,0,0)
         gray_dark = (40/256, 40/256, 40/256)
         gray_light = (200/256, 200/256, 200/256)
-
-
         red = (1,0,0)
         blue = (0,1,0)
         green = (0,0,1)
@@ -97,83 +113,90 @@ class glWidget(QGLWidget):
         purple = (1,0,1)
         blue_green = (0,1,1)
 
-        # Rendering Begins Here
+        #dataTable = [A1';B1';C1';D1';E1';F1';G1';OH';OL';OW';TWF';TWR';WB'];
+        a = parameterData[0]
+        b = parameterData[1]
+        c = parameterData[2]
+        d = parameterData[3]
+        e = parameterData[4]
+        f = parameterData[5]
+        g = parameterData[6]
+        oh = parameterData[7]
+        ol = parameterData[8]
+        ow = parameterData[9]
+        twf = parameterData[10]
+        twr = parameterData[11]
+        wb = parameterData[12]
+        tire_radius = oh-c-d
+        tire_width = ow-twf
 
         # ALL PASSED DIMENSIONS
-        ow = 30 # overall width
-        ol = 60 # overall length
-        oh = 40 # overall height
-        a = 15 # length of front hood
-        c = 10 # window height
-        d = 20 # door height
-        f = 10 # front tire clearance
-        g = 10 # back tire clearance
-        e = 20
-        tire_radius = oh - c  - d
-
-        anchor = (0,0,0)  # reference point in 3D space to fix car location
+        # ow = 30 # overall width
+        # ol = 70 # overall length
+        # oh = 40 # overall height
+        # a = 15 # length of front hood
+        # c = 10 # window height
+        # d = 20 # door height
+        # f = 10 # front tire clearance
+        # g = 10 # back tire clearance
+        # e = 25 # Width of roof
+        # tire_radius = oh - c  - d
+        # tire_width = ow-e
 
         # ALL CALCULATED VERTICES
-
-        v1  = ( anchor[0] + (ow-e)/2      , anchor[1] + (oh-c-d)        , anchor[2] )
-        v2  = ( anchor[0] + (ow-e)/2      , anchor[1] + (oh-c-d*(1/5))  , anchor[2] )
-        v3  = ( anchor[0] + ow - (ow-e)/2 , anchor[1] + (oh-c-d*(1/5))  , anchor[2] )
-        v4  = ( anchor[0] + ow - (ow-e)/2 , anchor[1] + (oh-c-d)        , anchor[2] )
-        v5  = ( anchor[0]                 , anchor[1] + (oh-c-d)        , anchor[2] - a*(1/5))
-        v6  = ( anchor[0]                 , anchor[1] + (oh-c)          , anchor[2] - a*(1/5))
-        v7  = ( anchor[0] + ow            , anchor[1] + (oh-c)          , anchor[2] - a*(1/5))
-        v8  = ( anchor[0] + ow            , anchor[1] + (oh-c-d)        , anchor[2] - a*(1/5))
-        v9  = ( anchor[0]                 , anchor[1] + (oh-c)          , anchor[2] - a)
-        v10 = ( anchor[0] + ow            , anchor[1] + (oh-c)          , anchor[2] - a)
-        v11 = ( anchor[0] + (ow-e)/2      , anchor[1] + oh              , anchor[2] - a - (ol-a)*(2/8) )
-        v12 = ( anchor[0] + ow - (ow-e)/2 , anchor[1] + oh              , anchor[2] - a - (ol-a)*(2/8) )
-        v13 = ( anchor[0] + (ow-e)/2      , anchor[1] + oh              , anchor[2] - (ol - (ol-a)*(1/8)) )
-        v14 = ( anchor[0] + ow - (ow-e)/2 , anchor[1] + oh              , anchor[2] - (ol - (ol-a)*(1/8)) )
-        v15 = ( anchor[0]                 , anchor[1] + (oh-c)          , anchor[2] - ol )
-        v16 = ( anchor[0] + ow            , anchor[1] + (oh-c)          , anchor[2] - ol )
-        v17 = ( anchor[0]                 , anchor[1] + (oh-c-d)        , anchor[2] - ol )
-        v18 = ( anchor[0] + ow            , anchor[1] + (oh-c-d)        , anchor[2] - ol )
-        v19 = ( anchor[0] + ow            , anchor[1] + (oh-c-d)        , anchor[2] - f )
-        v20 = ( anchor[0]                 , anchor[1] + (oh-c-d)        , anchor[2] - f )
-        v21 = ( anchor[0] + ow            , anchor[1] + (oh-c-d)        , anchor[2] - (ol-g) )
-        v22 = ( anchor[0]                 , anchor[1] + (oh-c-d)        , anchor[2] + (ol-g) )
-
+        v1  = (anchor[0] + (ow - e) / 2      , anchor[1] + (oh - c - d)           , anchor[2])
+        v2  = (anchor[0] + (ow - e) / 2      , anchor[1] + (oh - c - d * (1 / 5)) , anchor[2])
+        v3  = (anchor[0] + ow - (ow - e) / 2 , anchor[1] + (oh - c - d * (1 / 5)) , anchor[2])
+        v4  = (anchor[0] + ow - (ow - e) / 2 , anchor[1] + (oh - c - d)           , anchor[2])
+        v5  = (anchor[0]                     , anchor[1] + (oh - c - d)           , anchor[2] - a * (1 / 5))
+        v6  = (anchor[0]                     , anchor[1] + (oh - c)               , anchor[2] - a * (1 / 5))
+        v7  = (anchor[0] + ow                , anchor[1] + (oh - c)               , anchor[2] - a * (1 / 5))
+        v8  = (anchor[0] + ow                , anchor[1] + (oh - c - d)           , anchor[2] - a * (1 / 5))
+        v9  = (anchor[0]                     , anchor[1] + (oh - c)               , anchor[2] - a)
+        v10 = (anchor[0] + ow                , anchor[1] + (oh - c)               , anchor[2] - a)
+        v11 = (anchor[0] + (ow - e) / 2      , anchor[1] + oh                     , anchor[2] - a - (ol - a) * (2 / 8))
+        v12 = (anchor[0] + ow - (ow - e) / 2 , anchor[1] + oh                     , anchor[2] - a - (ol - a) * (2 / 8))
+        v13 = (anchor[0] + (ow - e) / 2      , anchor[1] + oh                     , anchor[2] - (ol - (ol - a) * (1 / 8)))
+        v14 = (anchor[0] + ow - (ow - e) / 2 , anchor[1] + oh                     , anchor[2] - (ol - (ol - a) * (1 / 8)))
+        v15 = (anchor[0]                     , anchor[1] + (oh - c)               , anchor[2] - ol)
+        v16 = (anchor[0] + ow                , anchor[1] + (oh - c)               , anchor[2] - ol)
+        v17 = (anchor[0]                     , anchor[1] + (oh - c - d)           , anchor[2] - ol)
+        v18 = (anchor[0] + ow                , anchor[1] + (oh - c - d)           , anchor[2] - ol)
+        v19 = (anchor[0] + ow                , anchor[1] + (oh - c - d)           , anchor[2] - f)
+        v20 = (anchor[0]                     , anchor[1] + (oh - c - d)           , anchor[2] - f)
+        v21 = (anchor[0] + ow                , anchor[1] + (oh - c - d)           , anchor[2] - (ol - g))
+        v22 = (anchor[0]                     , anchor[1] + (oh - c - d)           , anchor[2] - (ol - g))
 
 
-
-
-        #self.renderBody(overall_width, overall_length, overall_height, anchor, tire_radius )
-        self.renderQuad(v1,v2,v3,v4,        brown_light ) # face 11
-        self.renderQuad(v1,v2,v6,v5,        brown_dark) # face 13
-        self.renderQuad(v2,v3,v7,v6,        brown_dark) # face 10
-        self.renderQuad(v3,v4,v8,v7,        brown_dark) # face 12
+        # Render Body
+        self.renderQuad(v1,v2,v3,v4,        brown_dark ) # face 11
+        self.renderQuad(v1,v2,v6,v5,        brown_regular) # face 13
+        self.renderQuad(v2,v3,v7,v6,        brown_regular) # face 10
+        self.renderQuad(v3,v4,v8,v7,        brown_regular) # face 12
         self.renderQuad(v6, v7, v10, v9,    brown_light)  # face 9
-        self.renderQuad(v9, v10, v12, v11,  gray_light)  # face 8
+        self.renderQuad(v9, v10, v12, v11,  gray_dark)  # face 8
         self.renderQuad(v11, v12, v14, v13, brown_light)  # face 1
-        self.renderQuad(v13, v14, v16, v15, gray_light)  # face 2
+        self.renderQuad(v13, v14, v16, v15, gray_dark)  # face 2
         self.renderQuad(v16, v15, v17, v18, brown_dark)  # face 3
-        self.renderQuad(v10, v12, v14, v16, gray_light)  # face 4
+        self.renderQuad(v10, v12, v14, v16, gray_dark)  # face 4
         self.renderQuad(v8, v7, v16, v18,   brown_light)  # face 5
         self.renderQuad(v5, v6, v15, v17,   brown_light)  # face 7
-        self.renderQuad(v9, v11, v13, v15,  gray_light)  # face 6
-        self.renderQuad(v5, v8, v18, v17,   gray_dark)  # face 14
+        self.renderQuad(v9, v11, v13, v15,  gray_dark)  # face 6
+        self.renderQuad(v5, v8, v18, v17,   gray_light)  # face 14
         #self.renderQuad(v3, v4, v8, v7)  # face 15
 
-
-
-
-
-        #render 4 tires
-        tire_width = 2
-        self.renderCylinder( gray_dark, [0            ,tire_radius, -f                    ], tire_radius, tire_width)
-        self.renderCylinder( gray_dark, [ow,tire_radius, -f                    ], tire_radius, tire_width)
-        self.renderCylinder( gray_dark, [ow,tire_radius, -(ol - g)], tire_radius, tire_width)
-        self.renderCylinder( gray_dark, [0            ,tire_radius, -(ol - g)], tire_radius, tire_width)
+        # Render 4 Tires
+        self.renderCylinder(gray_dark, [v19[0],v19[1],v19[2]],      tire_radius, tire_width)
+        self.renderCylinder(gray_dark, [v20[0],v20[1],v20[2]],      tire_radius, tire_width)
+        self.renderCylinder(gray_dark, [v21[0],v21[1],v21[2]],      tire_radius, tire_width)
+        self.renderCylinder(gray_dark, [v22[0],v22[1],v22[2]],      tire_radius, tire_width)
 
     # ------------------------ Modeling Functions ------------------------------------
 
+# This method makes a quad plane given 4 vertices and a color
+# Its purpose is to shorten the length of the code although glBegin and glEnd repeatedly may not be efficient
     def renderQuad(self, v1, v2, v3, v4, color):
-        glPolygonMode(GL_FRONT_AND_BACK, GL_LINE)
+        #glPolygonMode(GL_FRONT_AND_BACK, GL_LINE)
         glBegin(GL_QUADS)
         glColor3f(color[0],color[1],color[2])
         glVertex3f(v1[0],v1[1],v1[2])
@@ -183,63 +206,7 @@ class glWidget(QGLWidget):
         glEnd()
         glFlush()
 
-    def renderBody(self, overall_width, overall_length, overall_height, anchor, r):
-        a = (anchor[0], anchor[1], anchor[2])
-        ow = overall_width
-        ol = overall_length
-        oh = overall_height
-        tire_radius = r
-
-        #make cube
-        glBegin(GL_QUADS)
-
-        #bottom face
-        glColor3f(1, 0, 0)
-        glVertex3f(a[0]     , a[1]+tire_radius, a[2]        )
-        glVertex3f(a[0] + ow, a[1]+tire_radius, a[2]        )
-        glVertex3f(a[0] + ow, a[1]+tire_radius, a[2] - ol   )
-        glVertex3f(a[0]     , a[1]+tire_radius, a[2] - ol   )
-
-        #top face
-        glColor3f(1, 0, 0)
-        glVertex3f(a[0]     , a[1]+oh, a[2]        )
-        glVertex3f(a[0] + ow, a[1]+oh, a[2]        )
-        glVertex3f(a[0] + ow, a[1]+oh, a[2] - ol   )
-        glVertex3f(a[0]     , a[1]+oh, a[2] - ol   )
-
-        #right face
-        glColor3f(0, 1, 0)
-        glVertex3f(a[0]     , a[1]+tire_radius  , a[2]        )
-        glVertex3f(a[0]     , a[1]+oh           , a[2]        )
-        glVertex3f(a[0]     , a[1]+oh           , a[2] - ol   )
-        glVertex3f(a[0]     , a[1]+tire_radius  , a[2] - ol   )
-
-        #left face
-        glColor3f(0, 1, 0)
-        glVertex3f(a[0]+ow  , a[1]+tire_radius  , a[2]        )
-        glVertex3f(a[0]+ow  , a[1]+oh           , a[2]        )
-        glVertex3f(a[0]+ow  , a[1]+oh           , a[2] - ol   )
-        glVertex3f(a[0]+ow  , a[1]+tire_radius  , a[2] - ol   )
-
-        #front face
-        glColor3f(0, 0, 1)
-        glVertex3f(a[0]     , a[1]+tire_radius  , a[2])
-        glVertex3f(a[0]+ow  , a[1]+tire_radius  , a[2])
-        glVertex3f(a[0]+ow  , a[1]+oh           , a[2])
-        glVertex3f(a[0]     , a[1]+oh           , a[2])
-
-        #back face
-        glColor3f(0, 0, 1)
-        glVertex3f(a[0]     , a[1]+tire_radius  , a[2] - ol)
-        glVertex3f(a[0]+ow  , a[1]+tire_radius  , a[2] - ol)
-        glVertex3f(a[0]+ow  , a[1]+oh           , a[2] - ol)
-        glVertex3f(a[0]     , a[1]+oh           , a[2] - ol)
-
-        glEnd()
-        glFlush()
-
-
-
+# This Method is Responsible for Creating Cylinders, I use it for making tires
     def renderCylinder(self, color, centerTuple, r, t):
         center = (centerTuple[0], centerTuple[1], centerTuple[2])
         radius = r
@@ -284,7 +251,7 @@ class glWidget(QGLWidget):
         glEnd()
         glFlush()
 
-
+# This method creates the 3 arrows that represent the coordinate axes for the viewers reference
     def renderCoordinateArrows(self):
         glBegin(GL_LINES)
         # RED ARROW - X DIRECTION
@@ -321,7 +288,7 @@ class glWidget(QGLWidget):
         glEnd()
         glFlush()
 
-    # ------------------- Variable Setters -----------------
+    # ------------------- Variable Setter Methods -----------------
 
     def setXRotation(self, angle):
         self.rotX += angle
@@ -374,22 +341,23 @@ class glWidget(QGLWidget):
         print("Key Pressed")
         if event.key() == QtCore.Qt.Key.Key_A:
             print("+X")
-            self.setXTranslation(1)
+            self.setXTranslation(20)
         elif event.key() == QtCore.Qt.Key.Key_D:
             print("-X")
-            self.setXTranslation(-1)
+            self.setXTranslation(-20)
         elif event.key() == QtCore.Qt.Key.Key_Up:
             print("+Y")
-            self.setYTranslation(1)
+            self.setYTranslation(20)
         elif event.key() == QtCore.Qt.Key.Key_Down:
             print("-Y")
-            self.setYTranslation(-1)
+            self.setYTranslation(-20)
         elif event.key() == QtCore.Qt.Key.Key_W:
             print("+Z")
-            self.setZTranslation(1)
+            self.setZTranslation(20)
         elif event.key() == QtCore.Qt.Key.Key_S:
             print("-Z")
-            self.setZTranslation(-1)
+            self.setZTranslation(-20)
+
 
     # ########################
     #
@@ -409,6 +377,8 @@ class glWidget(QGLWidget):
     #
     # #########################
 
+
+# MAIN PROGRAM STARTS HERE
 
 if __name__ == '__main__':
     app = QtWidgets.QApplication(sys.argv)
