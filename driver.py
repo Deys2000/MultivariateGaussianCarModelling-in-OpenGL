@@ -113,7 +113,7 @@ class glWidget(QGLWidget):
         purple = (1,0,1)
         blue_green = (0,1,1)
 
-        #dataTable = [A1';B1';C1';D1';E1';F1';G1';OH';OL';OW';TWF';TWR';WB'];
+        #dataTable = [A1';B1';C1';D1';E1';F1';G1';OH';OL';OW';TWF';TWR';WB']
         a = parameterData[0]
         b = parameterData[1]
         c = parameterData[2]
