@@ -13,9 +13,10 @@ dataTable = [A1';B1';C1';D1';E1';F1';G1';OH';OL';OW';TWF';TWR';WB'];
 mu = mean(dataTable,2);
 Sigma = cov(dataTable');
 
+save('Mu_and_Sigma.mat', 'mu', 'Sigma')
 
 samplingPoints = 1;
-%rng('default')
+
 X = mvnrnd(mu,Sigma,samplingPoints);
 save('ModellingData.mat', 'X')
 

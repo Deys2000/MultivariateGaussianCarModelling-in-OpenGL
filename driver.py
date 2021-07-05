@@ -93,6 +93,8 @@ class glWidget(QGLWidget):
         glRotate(self.rotZ, 0, 0, 1)
 
         self.renderCoordinateArrows()
+
+        #for multiple cars
         anchorStepsX = 0
         for dimensions in self.carDimensions:
             self.renderCar((anchorStepsX,0,0), dimensions )
@@ -191,7 +193,40 @@ class glWidget(QGLWidget):
         self.renderCylinder(gray_dark, [v21[0],v21[1],v21[2]],      tire_radius, tire_width)
         self.renderCylinder(gray_dark, [v22[0],v22[1],v22[2]],      tire_radius, tire_width)
 
+        #Render Ground Plane
+        self.renderGroundPlane(anchor, ow, ol)
+
     # ------------------------ Modeling Functions ------------------------------------
+
+    def renderGroundPlane(self, anchor, overall_width, overall_length):
+        xSharpness = 4
+        zSharpness = 4
+        zLength = overall_length * 1.2
+        xLength = overall_width * 1.7
+        xStart = anchor[0] - (xLength-overall_width)/2
+        zStart = anchor[2] - zLength + (zLength-overall_length)/2
+        xSteps = xLength/xSharpness
+        zSteps = zLength/zSharpness
+
+        red = (1,0,0)
+        blue = (0,1,0)
+        green = (0,0,1)
+        yellow = (1,1,0)
+        purple = (1,0,1)
+        blue_green = (0,1,1)
+
+        for x in range ( 0 , xSharpness):
+            for z in range ( 0, zSharpness):
+                v1 = (xStart + x*xSteps ,           0, zStart + z*zSteps )
+                v2 = (xStart + (x+1)*xSteps,        0, zStart + z*zSteps )
+                v3 = (xStart + (x+1)*xSteps,        0, zStart + (z+1)*zSteps)
+                v4 = (xStart + x*xSteps,            0, zStart + (z+1)*zSteps)
+                if( np.mod(x+z,2) == 1):
+                    color = purple
+                else:
+                    color = yellow
+                self.renderQuad(v1, v2, v3, v4, color)
+
 
 # This method makes a quad plane given 4 vertices and a color
 # Its purpose is to shorten the length of the code although glBegin and glEnd repeatedly may not be efficient
@@ -333,7 +368,7 @@ class glWidget(QGLWidget):
             self.setYRotation(dx)
             # print("ROTATE: " + "x = " + str(self.rotX) + "y = " + str(self.rotY) + "z = " + str(self.rotZ))
         elif event.buttons() == QtCore.Qt.RightButton:
-            self.setZTranslation(dx)
+            self.setZTranslation(dx*5)
             # print("ZOOM: " + "zoom = " + str(self.rotZ) + " -> + " + str(dx))
         self.lastPos = QtCore.QPoint(event.pos())
 
@@ -346,15 +381,29 @@ class glWidget(QGLWidget):
         elif event.key() == QtCore.Qt.Key.Key_Right:
             print("-X")
             self.setXTranslation(-movement_speed)
-        elif event.key() == QtCore.Qt.Key.Key_Up:
+        elif event.key() == QtCore.Qt.Key.Key_Down:
             print("+Y")
             self.setYTranslation(movement_speed)
-        elif event.key() == QtCore.Qt.Key.Key_Down:
+        elif event.key() == QtCore.Qt.Key.Key_Up:
             print("-Y")
             self.setYTranslation(-movement_speed)
-        # elif event.key() == QtCore.Qt.Key.Key_W:
-        #     print("+Z")
-        #     self.setZTranslation(movement_speed)
+
+        elif event.key() == QtCore.Qt.Key.Key_G:
+            # GENERATE NEW CAR
+            print("Generate Car")
+            self.eng = matlab.engine.start_matlab() # starting engine takes lots of time, avoid if possible
+            print("started matlab engine")
+            self.eng.Sampler(nargout=0)
+            print("ran sampling code")
+            self.eng.quit()
+            print("quit matlab engine")
+            parameter_data = loadmat('ModellingData.mat')
+            print("gathered parameter data")
+            self.carDimensions = parameter_data.get('X')
+            print(self.carDimensions)
+
+
+
         # elif event.key() == QtCore.Qt.Key.Key_S:
         #     print("-Z")
         #     self.setZTranslation(-movement_speed)
