@@ -326,37 +326,38 @@ class glWidget(QGLWidget):
     def mouseMoveEvent(self, event):
         dx = (event.x() - self.lastPos.x()) / 10
         dy = (event.y() - self.lastPos.y()) / 10
-        if dx < 0:
-            print('dx neg')
+        #if dx < 0:
+        #    print('dx neg')
         if event.buttons() == QtCore.Qt.LeftButton:
-            self.setXRotation(dy)
+            #self.setXRotation(dy) disabled vertical rotation
             self.setYRotation(dx)
-            print("ROTATE: " + "x = " + str(self.rotX) + "y = " + str(self.rotY) + "z = " + str(self.rotZ))
+            # print("ROTATE: " + "x = " + str(self.rotX) + "y = " + str(self.rotY) + "z = " + str(self.rotZ))
         elif event.buttons() == QtCore.Qt.RightButton:
-            self.setZoom(dx)
-            print("ZOOM: " + "zoom = " + str(self.zoom) + " -> + " + str(dx))
+            self.setZTranslation(dx)
+            # print("ZOOM: " + "zoom = " + str(self.rotZ) + " -> + " + str(dx))
         self.lastPos = QtCore.QPoint(event.pos())
 
     def keyPressEvent(self, event):
+        movement_speed = 20
         print("Key Pressed")
-        if event.key() == QtCore.Qt.Key.Key_A:
+        if event.key() == QtCore.Qt.Key.Key_Left:
             print("+X")
-            self.setXTranslation(20)
-        elif event.key() == QtCore.Qt.Key.Key_D:
+            self.setXTranslation(movement_speed)
+        elif event.key() == QtCore.Qt.Key.Key_Right:
             print("-X")
-            self.setXTranslation(-20)
+            self.setXTranslation(-movement_speed)
         elif event.key() == QtCore.Qt.Key.Key_Up:
             print("+Y")
-            self.setYTranslation(20)
+            self.setYTranslation(movement_speed)
         elif event.key() == QtCore.Qt.Key.Key_Down:
             print("-Y")
-            self.setYTranslation(-20)
-        elif event.key() == QtCore.Qt.Key.Key_W:
-            print("+Z")
-            self.setZTranslation(20)
-        elif event.key() == QtCore.Qt.Key.Key_S:
-            print("-Z")
-            self.setZTranslation(-20)
+            self.setYTranslation(-movement_speed)
+        # elif event.key() == QtCore.Qt.Key.Key_W:
+        #     print("+Z")
+        #     self.setZTranslation(movement_speed)
+        # elif event.key() == QtCore.Qt.Key.Key_S:
+        #     print("-Z")
+        #     self.setZTranslation(-movement_speed)
 
 
     # ########################

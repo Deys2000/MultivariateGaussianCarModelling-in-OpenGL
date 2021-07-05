@@ -14,7 +14,7 @@ mu = mean(dataTable,2);
 Sigma = cov(dataTable');
 
 
-samplingPoints = 3;
+samplingPoints = 1;
 %rng('default')
 X = mvnrnd(mu,Sigma,samplingPoints);
 save('ModellingData.mat', 'X')
@@ -26,7 +26,6 @@ save('ModellingData.mat', 'X')
 
 %clf
 
-%%
 %corrplot(Sigma);
 
 %% creating a plot of pdf's at a range of values
@@ -37,7 +36,6 @@ save('ModellingData.mat', 'X')
 % ylabel('Probability Density at sample');
 
 %%
-
 %for i = 1:36
 %    subplot(6,6,i);
 %    carPlotter(X(i,:,:));
