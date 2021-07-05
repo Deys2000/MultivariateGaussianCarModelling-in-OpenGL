@@ -129,8 +129,10 @@ class glWidget(QGLWidget):
         twf = parameterData[10]
         twr = parameterData[11]
         wb = parameterData[12]
-        tire_radius = oh-c-d
-        tire_width = ow-twf
+        #tire_radius = oh-c-d
+        tire_radius = 43.18 # according to https://autosphere.ca/tires/2018/02/16/north-american-market-overview-industry-snapshot/
+        #tire_width = ow-twf
+        tire_width = 22.5 # according to  https://autosphere.ca/tires/2018/02/16/north-american-market-overview-industry-snapshot/
 
         # ALL PASSED DIMENSIONS
         # ow = 30 # overall width
@@ -164,10 +166,11 @@ class glWidget(QGLWidget):
         v16 = (anchor[0] + ow                , anchor[1] + (oh - c)               , anchor[2] - ol)
         v17 = (anchor[0]                     , anchor[1] + (oh - c - d)           , anchor[2] - ol)
         v18 = (anchor[0] + ow                , anchor[1] + (oh - c - d)           , anchor[2] - ol)
-        v19 = (anchor[0] + ow                , anchor[1] + (oh - c - d)           , anchor[2] - f)
-        v20 = (anchor[0]                     , anchor[1] + (oh - c - d)           , anchor[2] - f)
-        v21 = (anchor[0] + ow                , anchor[1] + (oh - c - d)           , anchor[2] - (ol - g))
-        v22 = (anchor[0]                     , anchor[1] + (oh - c - d)           , anchor[2] - (ol - g))
+        # wheel centers
+        v19 = (anchor[0] + ow - (ow-twf)/2   , anchor[1] + tire_radius           , anchor[2] - f)
+        v20 = (anchor[0] + (ow-twf)/2        , anchor[1] + tire_radius           , anchor[2] - f)
+        v21 = (anchor[0] + ow - (ow-twf)/2   , anchor[1] + tire_radius           , anchor[2] - (ol - g))
+        v22 = (anchor[0] + (ow-twf)/2        , anchor[1] + tire_radius           , anchor[2] - (ol - g))
 
 
         # Render Body
