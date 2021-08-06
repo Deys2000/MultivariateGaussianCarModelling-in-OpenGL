@@ -8,7 +8,7 @@ F1 = data.F1; G1 = data.G1; OH = data.OH;
 OL = data.OL; OW = data.OW; TWF = data.TWF;
 TWR = data.TWR; WB = data.WB;
 % creating a matrix of values [dimensions by # of samples ]
-dataTable = [A1';B1';C1';D1';E1';F1';G1';OH';OL';OW';TWF';TWR';WB'];
+dataTable = [A1';C1';D1';E1';F1';G1';OH';OL';OW';TWF';TWR'];
 % defining parameters mu and Sigma
 mu = mean(dataTable,2);
 Sigma = cov(dataTable');
@@ -16,7 +16,7 @@ Sigma = cov(dataTable');
 save('Mu_and_Sigma.mat', 'mu', 'Sigma')
 
 samplingPoints = 1;
-
+rng('shuffle')
 X = mvnrnd(mu,Sigma,samplingPoints);
 save('ModellingData.mat', 'X')
 
