@@ -7,6 +7,7 @@ from PyQt5 import QtCore, QtWidgets, QtOpenGL
 import numpy as np
 import matlab.engine
 from scipy.io import loadmat
+import transformations as transform
 
 # creates the main window and calls the glWidget Class for contents
 class Ui_MainWindow(QtWidgets.QWidget):
@@ -27,19 +28,26 @@ class Ui_MainWindow(QtWidgets.QWidget):
 class glWidget(QGLWidget):
 
     def __init__(self, parent=None):
-        window_height = 800
-        window_width = 800
+        window_height = 1000
+        window_width = 1000
 
         QGLWidget.__init__(self, parent)
         self.setMinimumSize(window_width, window_height)
+        print("Initialized Window")
 
         # #maltab calc
+        print("Starting MATLAB Engine")
         self.eng = matlab.engine.start_matlab()
+        print("MATLAB Engine Started")
         self.eng.MultivariateNormalOf2021Cars(nargout=0)
+        print("Multivariate Model Created")
+        print("Ending MATLAB Engine")
         self.eng.quit()
+        print("MATLAB Engine Ended")
 
         parameter_data = loadmat('ModellingData.mat')
         self.carDimensions =  parameter_data.get('X')
+        print("Data Gathered, Rendering Vehicle")
 
         # translation variables - inital values
         self.x = 20.0*10
@@ -53,9 +61,9 @@ class glWidget(QGLWidget):
         self.zoom = 0
 
     # called before main program runs
-    def initializeGL(self, mat_specular=None):
-        window_height = 800
-        window_width = 800
+    def initializeGL(self):
+        window_height = 1000
+        window_width = 1000
 
         # # Lighting
         # glEnable(GL_LIGHTING)
@@ -70,18 +78,21 @@ class glWidget(QGLWidget):
         # glMaterialfv(GL_FRONT, GL_SHININESS, mat_shininess)
         # glLightfv(GL_LIGHT0, GL_POSITION, light_position)
         #
-        # glEnable(GL_LIGHTING)
+        #glEnable(GL_LIGHTING)
         # glEnable(GL_LIGHT0)
+        # glColorMaterial(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE)
+        # glEnable(GL_COLOR_MATERIAL)
         # glEnable(GL_DEPTH_TEST)
 
         glClearDepth(1.0)
         glDepthFunc(GL_LESS)
         glEnable(GL_DEPTH_TEST)
-        glShadeModel(GL_SMOOTH)
+        glShadeModel(GL_SMOOTH) # OPTION 1 - filled in plane model
+        #glShadeModel(GL_LINES) # OPTION 2 - wirefrace model (not working rn, maybe just trun all the quads to lines..? no)
         glMatrixMode(GL_PROJECTION)
 
         #glLoadIdentity()
-        gluPerspective(45.0, window_width / window_height, 0.1, 5000.0)
+        gluPerspective(45.0, window_width / window_height, 0.1, 7000.0)
         glViewport(0,0,window_width,window_height) # corrects the y axis compression. Read more here: https://www.glprogramming.com/red/chapter03.html
         glMatrixMode(GL_MODELVIEW)
 
@@ -135,13 +146,12 @@ class glWidget(QGLWidget):
         gray_regular = (180/256,180/256,180/256)
         gray_light = (250/256, 250/256, 250/256)
 
-        gray_regular= gray_light
         red = (1,0,0)
         blue = (0,0,1)
         green = (0,1,0)
         yellow = (1,1,0)
         purple = (1,0,1)
-        blue_green = (0,1,1)
+        cyan = (0,1,1)
 
         #parameterData has the following information: [A1';C1';D1';E1';F1';G1';OH';OL';OW';TWF';TWR']
         a = parameterData[0]
@@ -191,8 +201,6 @@ class glWidget(QGLWidget):
         # Mercedes S Class Sedan
         # ow = 190; ol = 529; oh = 150; a = 155; c = 36; d = 87; e = 114; f = 91; g = 113; twf = 160
 
-
-
         tire_radius = 43.18
         tire_width = ow-twf + 5 # plus 5 added purely for visual purposes
 
@@ -222,24 +230,25 @@ class glWidget(QGLWidget):
         v22 = (anchor[0] + (ow-twf)/2        , anchor[1] + tire_radius           , anchor[2] - (ol - g))
 
         # un-comment if you want to display or see values of vertices
-        self.displayVertices((v1,v2,v3,v4,v5,v6,v7,v8,v9,v10,v11,v12,v13,v14,v15,v16,v17,v18,v19,v20,v21,v22))
-        # self.printVertices((v1,v2,v3,v4,v5,v6,v7,v8,v9,v10,v11,v12,v13,v14,v15,v16,v17,v18,v19,v20,v21,v22))
+        # self.displayVertices((v1,v2,v3,v4,v5,v6,v7,v8,v9,v10,v11,v12,v13,v14,v15,v16,v17,v18,v19,v20,v21,v22))
+        #self.printVertices((v1,v2,v3,v4,v5,v6,v7,v8,v9,v10,v11,v12,v13,v14,v15,v16,v17,v18,v19,v20,v21,v22))
+
 
         # Render Body
-        self.renderQuad(v1,v2,v3,v4,        brown_light) # face 11
-        self.renderQuad(v1,v2,v6,v5,        brown_light) # face 13
-        self.renderQuad(v2,v3,v7,v6,        brown_light) # face 10
-        self.renderQuad(v3,v4,v8,v7,        brown_light) # face 12
-        self.renderQuad(v6, v7, v10, v9,    brown_light)  # face 9
-        self.renderQuad(v9, v10, v12, v11,  near_black)  # face 8
-        self.renderQuad(v11, v12, v14, v13, brown_light)  # face 1
-        self.renderQuad(v13, v14, v16, v15, near_black)  # face 2
-        self.renderQuad(v16, v15, v17, v18, brown_light)  # face 3
-        self.renderQuad(v10, v12, v14, v16, near_black)  # face 4
-        self.renderQuad(v8, v7, v16, v18,   brown_light)  # face 5
-        self.renderQuad(v5, v6, v15, v17,   brown_light)  # face 7
-        self.renderQuad(v9, v11, v13, v15,  near_black)  # face 6
-        self.renderQuad(v5, v8, v18, v17,   brown_light)  # face 14
+        n1 = self.renderQuad(v1,v2,v3,v4,        brown_light, True) # face 11
+        n2 = self.renderQuad(v1,v2,v6,v5,        brown_light, True) # face 13
+        n3 = self.renderQuad(v2,v3,v7,v6,        brown_light, True) # face 10
+        n4 = self.renderQuad(v3,v4,v8,v7,        brown_light, True) # face 12
+        n5 = self.renderQuad(v6, v7, v10, v9,    brown_light, True)  # face 9
+        n6 = self.renderQuad(v9, v10, v12, v11,  near_black, True)  # face 8
+        n7 = self.renderQuad(v11, v12, v14, v13, brown_light, True)  # face 1
+        n8 = self.renderQuad(v13, v14, v16, v15, near_black, True)  # face 2
+        n9 = self.renderQuad(v16, v15, v17, v18, brown_light, True)  # face 3
+        n10= self.renderQuad(v10, v12, v14, v16, near_black, True)  # face 4
+        n11= self.renderQuad(v8, v7, v16, v18,   brown_light, True)  # face 5
+        n12= self.renderQuad(v5, v6, v15, v17,   brown_light, True)  # face 7
+        n13= self.renderQuad(v9, v11, v13, v15,  near_black, True)  # face 6
+        n14= self.renderQuad(v5, v8, v18, v17,   brown_light, True)  # face 14
         #self.renderQuad(v3, v4, v8, v7)  # face 15
 
         # Render 4 Tires
@@ -250,23 +259,110 @@ class glWidget(QGLWidget):
 
         #Render Ground Plane
         self.renderGroundPlane(anchor, ow, ol)
-        self.renderBackground(anchor, ow, ol, oh)
+        self.renderBackground()
+
+        #Mimicking an Annotated Point Cloud
+        annotated_point_cloud = self.getAnnotatedPointCloud((400,0,0))
+        #Output of the ICP formula
+        #transformed_points = self.example_transformed()
+
+        transformed_points2 = self.example_transformed2()
+
+        #self.renderRandomAnnotatedPointCloud( (0,0,0) , red, (v1,v2,v3,v4,v5,v6,v7,v8,v9,v10,v11,v12,v13,v14,v15,v16,v17,v18))
+        self.renderRandomAnnotatedPointCloud( (0,0,0), green, annotated_point_cloud)
+        #self.renderRandomAnnotatedPointCloud( (0,0,0), blue, transformed_points)
+        self.renderRandomAnnotatedPointCloud( (0,0,0), cyan, transformed_points2)
+
+
+        # print("annotated point cloud")
+        # for p in annotated_point_cloud:
+        #     print(str(p[0])+" "+str(p[1])+" "+str(p[2]))
+        #
+        # n = (n1,n3, n5,n6,n7,n8,n9)
+        # print("points and normals")
+        # for np in n:
+        #     print(str(np[0])+" "+str(np[1])+" "+str(np[2])+" "+str(np[3])+" "+str(np[4])+" "+str(np[5]))
+        # # temporary code for front right tire
+        # print(str(v20[0])+" "+str(v20[1])+" "+str(v20[2])+" -1.0 0.0 0.0" )
+        # print(str(v19[0])+" "+str(v19[1])+" "+str(v19[2])+" 1.0 0.0 0.0" )
+
+        # the final flush before each new frame
         glFlush()
 
     # ------------------------ Modeling Functions ------------------------------------
+    def example_transformed(self):
 
-    def renderBackground(self, anchor, overall_width, overall_length, overall_height):
+        p1 = (254.3542673487756, 42.67290433167794, -0.44380498792993106)
+        p2 = (255.3874971870351, 114.64929265857823, 1.0832704904211523)
+        p3 = (358.8399538630042, 112.3725333535903, 38.398221579413715)
+        p4 = (357.80672402474494, 40.39614502668998, 36.87114610106257)
+        p5 = (228.55292115733914, 133.9387477269009, -41.25846367899658)
+        p6 = (407.24352814310356, 130.00616347283082, 23.19463365653609)
+        p7 = (270.6576878198879, 135.80852977512737, -157.87618334193812)
+        p8 = (449.34829480565276, 131.8759455210572, -93.42308600640563)
+        p9 = (334.9247293586584, 171.13021374033917, -215.9806239098986)
+        p10 = (438.3771860346277, 168.8534544353513, -178.66567282090602)
+        p11 = (426.43468593573056, 175.19397391773475, -469.43607108056614)
+        p12 = (529.8871426117001, 172.91721461274673, -432.1211199915734)
+        p13 = (401.3861972157051, 141.61390145712068, -519.9553935857491)
+        p14 = (580.0768042014695, 137.68131720305055, -455.5022962502161)
+        p15 = (400.09465991788124, 51.64341604849545, -521.8642379336881)
+
+        points = (p1,p2,p3,p4,p5,p6,p7,p8,p9,p10,p11,p12,p13,p14,p15)
+
+        return points
+
+    def example_transformed2(self):
+
+        p1 = (39.36990187005112, 69.31848315670558, -24.777673256403467)
+        p2 = (39.319052319241564, 141.2514661328648, -21.67229494212815)
+        p3 = (149.26403908636723, 141.17905109467384, -18.194559926515996)
+        p4 = (149.31488863717675, 69.24606811851463, -21.299938240791366)
+        p5 = (0.30640164029253203, 160.5981060053039, -53.11622301494445)
+        p6 = (190.2113787835096, 160.47302548479226, -47.10922616979616)
+        p7 = (4.2266292274886, 165.9463515542596, -176.93878996141294)
+        p8 = (194.13160637070564, 165.821271033748, -170.93179311626466)
+        p9 = (46.61624075658513, 204.2085290550282, -251.05441994127588)
+        p10 = (156.56122752371076, 204.13611401683727, -247.5766849256638)
+        p11 = (55.13641281101533, 215.83233692150858, -520.168789232189)
+        p12 = (165.081399578141, 215.7599218833177, -516.691054216577)
+        p13 = (16.398303590960325, 182.5517913635174, -561.3878889484319)
+        p14 = (206.30328073417735, 182.42671084300574, -555.3808921032835)
+        p15 = (16.4618655294723, 92.63556264331844, -565.2696118412758)
+        p16 = (206.3668426726893, 92.51048212280678, -559.2626149961278)
+        p17 = (17.245387446131467, 48.2400020441176, -116.51754188227436)
+
+        points = (p1,p2,p3,p4,p5,p6,p7,p8,p9,p10,p11,p12,p13,p14,p15,p16,p17)
+
+        return points
+
+
+    def renderRandomAnnotatedPointCloud(self, translation, color, vertices):
+        # points below chosen by hand mimicking annotation
+        # point
+        glEnable(GL_POINT_SMOOTH)
+        glPointSize(20)
+        glBegin(GL_POINTS)
+        glColor3fv(color)
+        for p in vertices:
+            glVertex3d(translation[0] + p[0],translation[1] + p[1], translation[2] + p[2])
+        glEnd()
+
+
+    def renderBackground(self):
         #currently hardcoded
         right = -2000
         left = 2000
-        front = -2000
-        behind = 2000
+        front = -3000
+        behind = 3000
         tall = 3000
 
-        self.renderQuad( (left,0,behind), (left,0,front), (left,tall,front), (left,tall,behind), (0,0.5,0.5)) #left
-        self.renderQuad( (right,0,behind), (right,0,front), (right,tall,front), (right,tall,behind), (0,0.5,0.5)) #right
-        self.renderQuad( (right,0,behind), (right,tall,behind), (left,tall,behind), (left,0,behind), (0,0.5,0.5)) #behind
-        self.renderQuad((right, 0,front), (right, tall, front), (left, tall, front), (left, 0, front),(0, 0.5, 0.5)) #front
+        blue = (0,0.5,0.5)
+
+        self.renderQuad( (left,0,behind), (left,0,front), (left,tall,front), (left,tall,behind), blue, False) #left
+        self.renderQuad( (right,0,behind), (right,0,front), (right,tall,front), (right,tall,behind), blue, False) #right
+        self.renderQuad( (right,0,behind), (right,tall,behind), (left,tall,behind), (left,0,behind), blue, False ) #behind
+        self.renderQuad( (right, 0,front), (right, tall, front), (left, tall, front), (left, 0, front),blue, False) #front
 
     def renderGroundPlane(self, anchor, overall_width, overall_length):
         # xSharpness = 4
@@ -307,11 +403,11 @@ class glWidget(QGLWidget):
 
         # Hardcoded Ground Plane
         xLength = 4000
-        zLength = 6000
+        zLength = xLength*1.5
         xStart = overall_width/2 - xLength/2
         zStart = - overall_length/2 - zLength/2
         xSharpness = 50
-        zSharpness = 75
+        zSharpness = (int)(xSharpness*1.5)
         xSteps = xLength/xSharpness
         zSteps = zLength/zSharpness
 
@@ -325,12 +421,12 @@ class glWidget(QGLWidget):
                     color = gray_light
                 else:
                     color = gray_dark
-                self.renderQuad(v1, v2, v3, v4, color)
+                self.renderQuad(v1,v2,v3,v4,color,False) #the false prevents normals from being created for each
 
 
 # This method makes a quad plane given 4 vertices and a color
 # Its purpose is to shorten the length of the code although glBegin and glEnd repeatedly may not be efficient
-    def renderQuad(self, v1, v2, v3, v4, color):
+    def renderQuad(self, v1, v2, v3, v4, color, addNormal):
         #glPolygonMode(GL_FRONT_AND_BACK, GL_LINE)
         glBegin(GL_QUADS)
         glColor3f(color[0],color[1],color[2])
@@ -339,7 +435,53 @@ class glWidget(QGLWidget):
         glVertex3f(v3[0],v3[1],v3[2])
         glVertex3f(v4[0],v4[1],v4[2])
         glEnd()
-        #glFlush()
+
+        if (addNormal):
+
+            #midpoint
+            x = (v1[0] + v2[0] + v3[0] + v4[0]) / 4
+            y = (v1[1] + v2[1] + v3[1] + v4[1]) / 4
+            z = (v1[2] + v2[2] + v3[2] + v4[2]) / 4
+
+            # Normal (by taking cross product of v1-v2 and v1-v4)
+            u = (v2[0]-v1[0], v2[1]-v1[1], v2[2]-v1[2])
+            v = (v4[0]-v1[0], v4[1]-v1[1], v4[2]-v1[2])
+
+            normalX = u[1]*v[2] - u[2]*v[1]
+            normalY = -u[0]*v[2] + u[2]*v[0]
+            normalZ = u[0]*v[1] - u[1]*v[0]
+
+            magnitude = np.sqrt(normalX*normalX + normalY*normalY + normalZ*normalZ)
+
+            scale = 30 #length of the normal vectors
+            normal = (normalX*scale/magnitude,normalY*scale/magnitude,normalZ*scale/magnitude)
+
+            # uncomment to print xyz data 14x6 matrix of xyz points and xyz for normal vectors (the plane information in point to plane icp)
+            # print(str(x) + "," + str(y)  + "," + str(z) + "," + str(normal[0]) + "," + str(normal[1]) + "," + str(normal[2]))
+
+            # below is the same data as above, just a bit more readable
+            # print("X:" + str(x) + ", Y:" + str(y)  + ", Z:" + str(z) + ", Normals: " + str(normal[0]) + ", " + str(normal[1]) + ", " + str(normal[2]))
+
+            #draw normal line
+            glEnable(GL_LINE_SMOOTH)
+            glLineWidth(3)
+            glBegin(GL_LINES)
+            glColor3f(0.0,0.0,1.0)
+            glVertex3f(x+normal[0], y+normal[1], z+normal[2])
+            glVertex3f(x-normal[0], y-normal[1], z-normal[2])
+            glEnd()
+
+            return (x,y,z,normal[0]/scale,normal[1]/scale,normal[2]/scale)
+            # point
+            # glEnable(GL_POINT_SMOOTH)
+            # glPointSize(20)
+            # glBegin(GL_POINTS)
+            # glColor3fv((0, 1, 0))
+            # glVertex3d(x,y,z)
+            # glVertex3d(x+normal[0], y+normal[1], z+normal[2])
+            # glVertex3d(x-normal[0], y-normal[1], z-normal[2])
+            # glEnd()
+        # glFlush()
 
 # This Method is Responsible for Creating Cylinders, I use it for making tires
     def renderCylinder(self, color, centerTuple, r, t):
@@ -358,7 +500,6 @@ class glWidget(QGLWidget):
             glVertex3f(center[0]-(t/2),center[1]+ radius * np.cos(arc_start),center[2]+ radius * np.sin(arc_start) )
             glVertex3f(center[0]-(t/2),center[1] + radius * np.cos(arc_end), center[2]+ radius * np.sin(arc_end) )
         glEnd()
-        glFlush()
 
         # SIDE OF CYLINDER
         glColor3f(0,0,0) # BLACK
@@ -371,7 +512,6 @@ class glWidget(QGLWidget):
             glVertex3f(center[0]+(t/2), center[1]+radius * np.cos(arc_start), center[2]+radius * np.sin(arc_start))
             glVertex3f(center[0]+(t/2), center[1]+radius * np.cos(arc_end), center[2]+radius * np.sin(arc_end))
         glEnd()
-        glFlush()
 
         # FACE 2 OF CYLINDER
         glColor3f(color[0], color[1], color[2])
@@ -384,7 +524,6 @@ class glWidget(QGLWidget):
             glVertex3f(center[0]+(t/2),center[1]+ radius * np.cos(arc_start),center[2]+ radius * np.sin(arc_start) )
             glVertex3f(center[0]+(t/2),center[1] + radius * np.cos(arc_end), center[2]+ radius * np.sin(arc_end) )
         glEnd()
-        glFlush()
 
 # This method creates the 3 arrows that represent the coordinate axes for the viewers reference
     def renderCoordinateArrows(self):
@@ -421,7 +560,6 @@ class glWidget(QGLWidget):
         glVertex3f(0.0, -1.0, 3.0)
 
         glEnd()
-        glFlush()
 
     # ------------------- Variable Setter Methods -----------------
 
@@ -464,7 +602,7 @@ class glWidget(QGLWidget):
         #if dx < 0:
         #    print('dx neg')
         if event.buttons() == QtCore.Qt.LeftButton:
-            #self.setXRotation(dy) disabled vertical rotation
+            self.setXRotation(dy) #disable vertical rotation
             self.setYRotation(dx)
             # print("ROTATE: " + "x = " + str(self.rotX) + "y = " + str(self.rotY) + "z = " + str(self.rotZ))
         elif event.buttons() == QtCore.Qt.RightButton:
@@ -473,7 +611,7 @@ class glWidget(QGLWidget):
         self.lastPos = QtCore.QPoint(event.pos())
 
     def keyPressEvent(self, event):
-        movement_speed = 20
+        movement_speed = 5
         print("Key Pressed")
         if event.key() == QtCore.Qt.Key.Key_Left:
             print("+X")
@@ -487,6 +625,13 @@ class glWidget(QGLWidget):
         elif event.key() == QtCore.Qt.Key.Key_Up:
             print("-Y")
             self.setYTranslation(-movement_speed)
+
+        elif event.key() == QtCore.Qt.Key.Key_X:
+            self.setXRotation(5)
+        elif event.key() == QtCore.Qt.Key.Key_Y:
+            self.setYRotation(5)
+        elif event.key() == QtCore.Qt.Key.Key_Z:
+            self.setZRotation(5)
 
         elif event.key() == QtCore.Qt.Key.Key_G:
             # GENERATE NEW CAR
@@ -508,17 +653,144 @@ class glWidget(QGLWidget):
 
     def displayVertices(self, vertices):
         glEnable(GL_POINT_SMOOTH)
-        glPointSize(20)
+        glPointSize(5)
         glBegin(GL_POINTS)
         glColor3fv((1, 0, 0))
         for v in vertices:
             glVertex3d(v[0],v[1],v[2])
         glEnd()
 
+    def getAnnotatedPointCloud(self, anchor):
+        # Mercedes S Class Sedan
+        # ow = 190; ol = 529; oh = 150; a = 155; c = 36; d = 87; e = 114; f = 91; g = 113; twf = 160
 
-        # elif event.key() == QtCore.Qt.Key.Key_S:
-        #     print("-Z")
-        #     self.setZTranslation(-movement_speed)
+        ow = 190.0
+        ol = 540.0
+        oh = 150.0
+        a = 155.0
+        c = 35.0
+        d = 90.0
+        e = 110.0
+        f = 90.0
+        g = 115.0
+        twf = 160.0
+
+        v1 = (anchor[0] + (ow - e) / 2, anchor[1] + (oh - c - d), anchor[2])
+        v2 = (anchor[0] + (ow - e) / 2, anchor[1] + (oh - c - d * (1 / 5)), anchor[2])
+        v3 = (anchor[0] + ow - (ow - e) / 2, anchor[1] + (oh - c - d * (1 / 5)), anchor[2])
+        v4 = (anchor[0] + ow - (ow - e) / 2, anchor[1] + (oh - c - d), anchor[2])
+        #v5 = (anchor[0], anchor[1] + (oh - c - d), anchor[2] - a * (1 / 5))
+        v6 = (anchor[0], anchor[1] + (oh - c), anchor[2] - a * (1 / 5))
+        v7 = (anchor[0] + ow, anchor[1] + (oh - c), anchor[2] - a * (1 / 5))
+        #v8 = (anchor[0] + ow, anchor[1] + (oh - c - d), anchor[2] - a * (1 / 5))
+        v9 = (anchor[0], anchor[1] + (oh - c), anchor[2] - a)
+        v10 = (anchor[0] + ow, anchor[1] + (oh - c), anchor[2] - a)
+        v11 = (anchor[0] + (ow - e) / 2, anchor[1] + oh, anchor[2] - a - (ol - a) * (2 / 10))
+        v12 = (anchor[0] + ow - (ow - e) / 2, anchor[1] + oh, anchor[2] - a - (ol - a) * (2 / 10))
+        v13 = (anchor[0] + (ow - e) / 2, anchor[1] + oh, anchor[2] - (ol - (ol - a) * (1 / 10)))
+        v14 = (anchor[0] + ow - (ow - e) / 2, anchor[1] + oh, anchor[2] - (ol - (ol - a) * (1 / 10)))
+        v15 = (anchor[0], anchor[1] + (oh - c), anchor[2] - ol)
+        v16 = (anchor[0] + ow, anchor[1] + (oh - c), anchor[2] - ol)
+        v17 = (anchor[0], anchor[1] + (oh - c - d), anchor[2] - ol)
+        v18 = (anchor[0] + ow, anchor[1] + (oh - c - d), anchor[2] - ol)
+        # tire, front right
+        tfr = (anchor[0] + ((ow-twf)/2), anchor[1], anchor[2]-f)
+        #tire, fron left
+        tfl = (anchor[0] + (ow-(ow-twf)/2), anchor[1], anchor[2]-f)
+
+        u = (v1,v2,v3,v4,v6,v7,v9,v10,v11,v12,v13,v14,v15,v16,v17,v18,tfr,tfl)
+        v = ()
+        v_list = list(v)
+        # essentially rotating 90 degress about z axis
+        for point in u:
+            v_list.append((-point[2], point[1], point[0]))
+        v = tuple(v_list)
+
+        return v
+
+    def icp_point_to_plane(self, source_points, dest_points, loop):
+        """
+        Point to plane matching using least squares
+
+        source_points:  nx3 matrix of n 3D points
+        dest_points: nx6 matrix of n 3D points + 3 normal vectors, which have been obtained by some rigid deformation of 'source_points'
+        """
+
+        A = []
+        b = []
+
+        for i in range(0, dest_points.shape[0] - 1):
+            # print dest_points[i][3],dest_points[i][4],dest_points[i][5]
+            dx = dest_points[i][0]
+            dy = dest_points[i][1]
+            dz = dest_points[i][2]
+            nx = dest_points[i][3]
+            ny = dest_points[i][4]
+            nz = dest_points[i][5]
+
+            sx = source_points[i][0]
+            sy = source_points[i][1]
+            sz = source_points[i][2]
+
+            # seems like the cross product is happening here...why?
+            _a1 = (nz * sy) - (ny * sz)
+            _a2 = (nx * sz) - (nz * sx)
+            _a3 = (ny * sx) - (nx * sy)
+
+            # creates a 1x6 array, of cross product values and normal values
+            _a = np.array([_a1, _a2, _a3, nx, ny, nz])
+
+            # i dont know what this is, perhaps its the formula to minimize
+            _b = (nx * dx) + (ny * dy) + (nz * dz) - (nx * sx) - (ny * sy) - (nz * sz)
+
+            # here we append the relation of each source point to destination point
+            A.append(_a)
+            b.append(_b)
+
+        # the loop ends having gone through all 510 points and created A and B
+        # A is a 510 by 6 matrix
+        # B is a 510 by 1 vector
+
+        A1 = np.array(A)
+        b1 = np.array(b)
+        # made them into arrays again?...perhaps there was some formatting issue
+
+        # computes the calculates the generalized inverse of a matrix using SVD
+        A_ = np.linalg.pinv(A1)
+
+        # computes the dot product of two arrays
+        # since A in a N-D array and B is a 1D array, it is a sum product over the last axis of A and B
+        tr = np.dot(A_, b)
+        # tr seems to be the translation matrix and R seems to be the rotation matrix
+
+        # print(str(tr[0])+','+str(tr[1])+','+str(tr[2])+','+str(tr[3])+','+str(tr[4])+','+str(tr[5]))
+
+        R = transform.euler_matrix(tr[0], tr[1], tr[2])
+        # Return homogeneous rotation matrix from Euler angles and axis sequence.
+
+        R[0, 3] = tr[3]
+        R[1, 3] = tr[4]
+        R[2, 3] = tr[5]
+        # it seams like we are creating a 3by4 matrix, where the 3by3 is R above and the 4th column is the 3 values in tr
+
+        source_transformed = []
+
+        # loop goes from 0 to 509
+        for i in range(0, dest_points.shape[0] - 1):
+            # getting the values of the source points and putting in a 4th value of 1 so its a 4by1 matrix
+            ss = np.array([(source_points[i][0]), (source_points[i][1]), (source_points[i][2]), (1)])
+            # applying the transformation contained in R to the source point, output maybe 4by1 or 3by1
+            p = np.dot(R, ss)
+            source_transformed.append(p)
+
+        source_points = np.array(source_transformed)
+
+        loop = loop + 1
+
+        if (loop < 3):  # although this should converge in one step (which it does), you might want to reiterate over and over, just for the fun of it!
+            return self.icp_point_to_plane(source_points, dest_points, loop)
+        else:
+            return source_points
 
 
     # ########################
